@@ -10,12 +10,13 @@
 
 
 import numpy as np
+import pandas as pd
 import os
 import six.moves.urllib as urllib
 import sys
 import tarfile
 import tensorflow as tf
-import zipfile
+import scipy
 
 from collections import defaultdict
 from io import StringIO
@@ -193,7 +194,8 @@ def run_inference_for_single_image(image, graph):
 
 # In[12]:
 
-
+detection_data = pd.DataFrame(columns=['ImageName','xmin', 'ymin', 'xmax', 'ymax'])
+num = 0
 for image_path in TEST_IMAGE_PATHS:
   image = Image.open(image_path)
   # the array based representation of the image will be used later in order to prepare the
@@ -213,7 +215,16 @@ for image_path in TEST_IMAGE_PATHS:
       instance_masks=output_dict.get('detection_masks'),
       use_normalized_coordinates=True,
       line_thickness=8)
+  box_list = output_dict['detection_boxes']
+  box = box_list[np.argmax(output_dict['detection_scores'])]
+  h,w = image.size[0], image.size[1]
+  imageName = image_path.replace(PATH_TO_TEST_IMAGES_DIR+'\\', '')
+  detection_data.loc[num] = [imageName, int(box[1]*w), int(box[0]*h), int(box[3]*w), int(box[2]*h)]
+  num +=1
   plt.figure(figsize=IMAGE_SIZE)
   plt.imshow(image_np)
   plt.show()
+  marked_img = Image.fromarray(image_np)
+  marked_img.save('marked_test_images\\marked_'+imageName)
 
+detection_data.to_csv("detection_data")
